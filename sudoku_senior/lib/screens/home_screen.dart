@@ -128,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _difficultyTile(ctx, context, "🌸  Principiante", "41 pistas • Ideal para aprender", mode, 1, colors),
                 _difficultyTile(ctx, context, "🍃  Normal", "32 pistas • Requiere atención", mode, 2, colors),
                 _difficultyTile(ctx, context, "⛩  Maestro", "24 pistas • Dominio del tablero", mode, 3, colors),
+                _difficultyTile(ctx, context, "🌿  Aprendiz", "Modo 4×4 • Tablero más sencillo", 'aprendiz', 0, colors, gridSize: 4),
                 Divider(color: colors.primary.withAlpha(60), height: 24),
                 _diabolicoTile(ctx, context, mode, colors),
                 const SizedBox(height: 16),
@@ -166,8 +167,9 @@ class _HomeScreenState extends State<HomeScreen> {
     String subtitle,
     String mode,
     int difficulty,
-    ColorScheme colors,
-  ) {
+    ColorScheme colors, {
+    int gridSize = 9,
+  }) {
     return ListTile(
       title: Text(
         title,
@@ -179,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       onTap: () {
         Navigator.pop(ctx);
-        _startGame(screenCtx, mode, difficulty);
+        _startGame(screenCtx, mode, difficulty, gridSize: gridSize);
       },
     );
   }
@@ -346,12 +348,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 8),
                       ],
 
-                      // Modo Aprendiz
-                      _buildApprenticeCard(context, colors),
-                      const SizedBox(height: 8),
-
-                      // Cuadrícula de modos 2x1 o 3x1
-                      _buildModeRow(context, colors),
+                      // Opciones de juego
+                      _buildModeSection(context, colors),
 
                       const SizedBox(height: 8),
 
@@ -397,6 +395,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Los dos modos en fila tipo cuadrícula
+  Widget _buildModeSection(BuildContext context, ColorScheme colors) {
+    return Column(
+      children: [
+        _buildModeRow(context, colors),
+      ],
+    );
+  }
+
   Widget _buildModeRow(BuildContext context, ColorScheme colors) {
     return IntrinsicHeight(
       child: Row(
@@ -583,50 +589,4 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildApprenticeCard(BuildContext context, ColorScheme colors) {
-    return InkWell(
-      onTap: () => _startGame(context, 'aprendiz', 0, gridSize: 4),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: colors.primary.withAlpha(12),
-          border: Border.all(color: colors.primary.withAlpha(50), width: 1.2),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: colors.primary.withAlpha(20),
-                border: Border.all(color: colors.primary.withAlpha(60)),
-              ),
-              child: Icon(Icons.school_outlined, size: 22, color: colors.primary),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "MODO APRENDIZ (4×4)",
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: colors.primary,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  Text(
-                    "Tablero sencillo de 4 cuadros. Sin presión.",
-                    style: TextStyle(fontSize: 10, color: colors.primary.withAlpha(150)),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: colors.primary.withAlpha(120), size: 20),
-          ],
-        ),
-      ),
-    );
-  }
 }

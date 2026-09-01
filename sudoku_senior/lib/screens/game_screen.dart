@@ -246,7 +246,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   void _saveGame() {
-    if (board.isEmpty) return;
+    if (board.isEmpty || _gameFinished) return;
     GameStorage.saveGameState(GameState(
       board: board,
       initial: initial,
@@ -266,8 +266,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _bannerAd?.dispose();
-    // Solo guardar si el juego sigue activo (no terminado/perdido)
-    if (!_gameFinished) _saveGame();
+    // Si el juego terminó, asegurarse de eliminar cualquier partida guardada.
+    if (_gameFinished) {
+      GameStorage.clearGameState();
+    } else {
+      _saveGame();
+    }
     super.dispose();
   }
 
@@ -548,36 +552,76 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           builder: (ctx) {
             final colors = Theme.of(ctx).colorScheme;
             return AlertDialog(
-              title: Text(isNew ? "¡Nuevo Pergamino Desbloqueado!" : "¡Completado!"),
+              backgroundColor: colors.surface,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: Text(
+                isNew ? "¡Nuevo Pergamino Desbloqueado!" : "¡Completado!",
+                style: TextStyle(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Serif',
+                  letterSpacing: 1.2,
+                ),
+                textAlign: TextAlign.center,
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Tiempo: ${_formatTime(elapsedTime)}", style: TextStyle(color: colors.primary)),
+                  Text(
+                    "Tiempo: ${_formatTime(elapsedTime)}",
+                    style: TextStyle(color: colors.primary.withAlpha(180)),
+                  ),
                   const SizedBox(height: 20),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
                     decoration: BoxDecoration(
-                      color: colors.primary.withAlpha(20),
-                      border: Border.all(color: colors.primary.withAlpha(50)),
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: colors.primary.withAlpha(80), width: 1.6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colors.primary.withAlpha(12),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Text(
                           "\"${rewardQuote.text}\"",
-                          style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, color: colors.primary),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                            color: colors.primary,
+                            height: 1.5,
+                            fontFamily: 'Serif',
+                          ),
                           textAlign: TextAlign.center,
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
+                        Divider(color: colors.primary.withAlpha(40), thickness: 1),
+                        const SizedBox(height: 14),
                         Text(
                           "- ${rewardQuote.author}",
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: colors.secondary),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: colors.secondary,
+                            fontFamily: 'Serif',
+                          ),
                           textAlign: TextAlign.right,
                         ),
                         if (rewardQuote.meaning != null) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 14),
                           Text(
                             rewardQuote.meaning!,
-                            style: TextStyle(fontSize: 12, color: colors.primary.withAlpha(160)),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: colors.primary.withAlpha(160),
+                              height: 1.4,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ]
