@@ -1,0 +1,35 @@
+﻿# --- Seguridad y Credenciales ---
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+*.properties
+!gradle.properties
+!gradle-wrapper.properties
+key.properties
+local.properties
+.env
+.env.*
+google-services.json
+GoogleService-Info.plist
+
+# --- Logs y volcados de errores ---
+*.log
+hs_err_pid*
+
+# --- Flutter y Dart ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub/
+.pub-cache/
+/build/
+
+# --- SO e IDEs ---
+.DS_Store
+Thumbs.db
+*.swp
+*.class
+.history/
+.idea/
