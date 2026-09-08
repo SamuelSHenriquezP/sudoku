@@ -1,12 +1,14 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 
 class AudioManager {
   static final AudioPlayer _bgmPlayer = AudioPlayer();
   static final AudioPlayer _sfxPlayer = AudioPlayer();
   static bool _musicOn = true;
   static bool _sfxOn = true;
+  static bool _hapticOn = true;
   static bool _isTest = false;
 
   static Future<void> init() async {
@@ -20,11 +22,13 @@ class AudioManager {
       final prefs = await SharedPreferences.getInstance();
       _musicOn = prefs.getBool('music_on') ?? true;
       _sfxOn = prefs.getBool('sfx_on') ?? true;
+      _hapticOn = prefs.getBool('haptic_on') ?? true;
 
       if (_isTest) return;
 
       await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
       await _bgmPlayer.setVolume(0.25); // Volumen Zen
+      await _sfxPlayer.setPlayerMode(PlayerMode.lowLatency);
     } catch (e) {
       debugPrint("AudioManager init error: $e");
     }
@@ -87,6 +91,29 @@ class AudioManager {
     await prefs.setBool('sfx_on', value);
   }
 
+  static void toggleHaptic(bool value) async {
+    _hapticOn = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('haptic_on', value);
+  }
+
+  static void vibrateLight() {
+    if (_hapticOn) HapticFeedback.lightImpact();
+  }
+
+  static void vibrateSelection() {
+    if (_hapticOn) HapticFeedback.selectionClick();
+  }
+
+  static void vibrateError() {
+    if (_hapticOn) HapticFeedback.heavyImpact();
+  }
+
+  static void vibrateSuccess() {
+    if (_hapticOn) HapticFeedback.mediumImpact();
+  }
+
   static bool get isMusicOn => _musicOn;
   static bool get isSfxOn => _sfxOn;
+  static bool get isHapticOn => _hapticOn;
 }

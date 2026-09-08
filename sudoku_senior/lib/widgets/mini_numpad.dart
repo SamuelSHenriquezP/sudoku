@@ -9,6 +9,7 @@ class MiniNumPad extends StatelessWidget {
   final Function() onErase;
   final Function() onHelp;
   final Function() onUndo;
+  final Set<int> completedNumbers;
 
   const MiniNumPad({
     super.key,
@@ -18,6 +19,7 @@ class MiniNumPad extends StatelessWidget {
     required this.onErase,
     required this.onHelp,
     required this.onUndo,
+    this.completedNumbers = const {},
   });
 
   @override
@@ -142,6 +144,7 @@ class MiniNumPad extends StatelessWidget {
 
   Widget _numBtn(BuildContext context, int num, double size) {
     final colors = Theme.of(context).colorScheme;
+    final isCompleted = completedNumbers.contains(num);
     return Expanded(
       child: GestureDetector(
         onTap: () => onNumberInput(num),
@@ -149,18 +152,42 @@ class MiniNumPad extends StatelessWidget {
           height: size * 0.9,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: colors.primary.withAlpha(10),
-            border: Border.all(color: colors.primary.withAlpha(35), width: 1),
-          ),
-          child: Center(
-            child: Text(
-              '$num',
-              style: TextStyle(
-                fontSize: 32,
-                color: colors.primary,
-                fontWeight: FontWeight.bold,
-              ),
+            color: isCompleted
+                ? colors.primary.withAlpha(4)
+                : colors.primary.withAlpha(10),
+            border: Border.all(
+              color: isCompleted
+                  ? colors.primary.withAlpha(18)
+                  : colors.primary.withAlpha(35),
+              width: 1,
             ),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(
+                child: Text(
+                  '$num',
+                  style: TextStyle(
+                    fontSize: 32,
+                    color: isCompleted
+                        ? colors.primary.withAlpha(60)
+                        : colors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              if (isCompleted)
+                Positioned(
+                  top: 4,
+                  right: 4,
+                  child: Icon(
+                    Icons.check,
+                    size: 14,
+                    color: colors.secondary.withAlpha(160),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

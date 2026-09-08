@@ -15,6 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _maestroWon = 0;
   bool _musicOn = AudioManager.isMusicOn;
   bool _sfxOn = AudioManager.isSfxOn;
+  bool _hapticOn = AudioManager.isHapticOn;
 
   @override
   void initState() {
@@ -64,7 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       body: ListView(
         children: [
-          _sectionHeader("AUDIO", colors),
+          _sectionHeader("AUDIO Y VIBRACIÓN", colors),
           SwitchListTile(
             title: Text("Música Zen", style: TextStyle(color: colors.primary)),
             subtitle: Text(
@@ -93,6 +94,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (val) {
               setState(() => _sfxOn = val);
               AudioManager.toggleSFX(val);
+            },
+          ),
+          SwitchListTile(
+            title:
+                Text("Respuesta Táctil", style: TextStyle(color: colors.primary)),
+            subtitle: Text(
+              "Vibración sutil al interactuar",
+              style:
+                  TextStyle(color: colors.primary.withAlpha(140), fontSize: 12),
+            ),
+            value: _hapticOn,
+            activeThumbColor: colors.primary,
+            activeTrackColor: colors.secondary,
+            onChanged: (val) {
+              setState(() => _hapticOn = val);
+              AudioManager.toggleHaptic(val);
+              if (val) AudioManager.vibrateLight();
             },
           ),
 

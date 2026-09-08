@@ -1,41 +1,10 @@
 import 'dart:math';
 import 'dart:isolate';
 
-// ─── Datos para el Isolate 9×9 ───────────────────────────────────────────────
-class _GenerateRequest {
-  final int difficulty;
-  final SendPort sendPort;
-  _GenerateRequest(this.difficulty, this.sendPort);
-}
-
 class GeneratedPuzzle {
   final List<int> solution;
   final List<int> puzzle;
   GeneratedPuzzle(this.solution, this.puzzle);
-}
-
-void _generateInIsolate(_GenerateRequest request) {
-  final engine = SudokuEngine();
-  engine.generate(request.difficulty);
-  request.sendPort.send(GeneratedPuzzle(
-    List.from(engine.solution),
-    List.from(engine.puzzle),
-  ));
-}
-
-// ─── Datos para el Isolate 4×4 ───────────────────────────────────────────────
-class _Generate4x4Request {
-  final SendPort sendPort;
-  _Generate4x4Request(this.sendPort);
-}
-
-void _generate4x4InIsolate(_Generate4x4Request request) {
-  final engine = SudokuEngine4x4();
-  engine.generate();
-  request.sendPort.send(GeneratedPuzzle(
-    List.from(engine.solution),
-    List.from(engine.puzzle),
-  ));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -46,15 +15,15 @@ class SudokuEngine {
   List<int> puzzle = List.filled(81, 0);
 
   // --- API PÚBLICA ASÍNCRONA ---
-  static Future<GeneratedPuzzle> generateAsync(int difficulty) async {
-    final receivePort = ReceivePort();
-    await Isolate.spawn(
-      _generateInIsolate,
-      _GenerateRequest(difficulty, receivePort.sendPort),
-    );
-    final result = await receivePort.first as GeneratedPuzzle;
-    receivePort.close();
-    return result;
+  static Future<GeneratedPuzzle> generateAsync(int difficulty) {
+    return Isolate.run(() {
+      final engine = SudokuEngine();
+      engine.generate(difficulty);
+      return GeneratedPuzzle(
+        List<int>.from(engine.solution),
+        List<int>.from(engine.puzzle),
+      );
+    });
   }
 
   // --- Dificultad: Agujeros por nivel ---
@@ -253,8 +222,8 @@ class SudokuEngine {
       if (_checkIfSafe(board, row, col, num)) {
         board[row * 9 + col] = num;
         count += _countSolutions(board);
-        if (count > 1) return count;
         board[row * 9 + col] = 0;
+        if (count > 1) return count;
       }
     }
     return count;
@@ -273,15 +242,15 @@ class SudokuEngine4x4 {
   List<int> puzzle   = List.filled(_size * _size, 0);
 
   // --- API PÚBLICA ASÍNCRONA ---
-  static Future<GeneratedPuzzle> generateAsync() async {
-    final receivePort = ReceivePort();
-    await Isolate.spawn(
-      _generate4x4InIsolate,
-      _Generate4x4Request(receivePort.sendPort),
-    );
-    final result = await receivePort.first as GeneratedPuzzle;
-    receivePort.close();
-    return result;
+  static Future<GeneratedPuzzle> generateAsync() {
+    return Isolate.run(() {
+      final engine = SudokuEngine4x4();
+      engine.generate();
+      return GeneratedPuzzle(
+        List<int>.from(engine.solution),
+        List<int>.from(engine.puzzle),
+      );
+    });
   }
 
   void generate() {
@@ -394,8 +363,8 @@ class SudokuEngine4x4 {
       if (_isSafe(board, row, col, num)) {
         board[pos] = num;
         count += _countSolutions(board);
-        if (count > 1) return count; // Early exit
         board[pos] = 0;
+        if (count > 1) return count; // Early exit
       }
     }
     return count;

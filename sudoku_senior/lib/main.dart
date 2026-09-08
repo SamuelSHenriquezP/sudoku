@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'managers/audio_manager.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
@@ -30,7 +31,17 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
   }
 
   Future<void> _initApp() async {
-    // 1. Initial configuration
+    // 1. Initial configuration & Theme restore
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedTheme = prefs.getInt('theme_index');
+      if (savedTheme != null && savedTheme >= 0 && savedTheme < myThemes.length) {
+        if (mounted) setState(() => _themeIndex = savedTheme);
+      }
+    } catch (e) {
+      debugPrint("Theme load error: $e");
+    }
+
     try {
       await AudioManager.init();
       AudioManager.playGameMusic();
@@ -53,6 +64,19 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
       return;
     }
 
+    // Timeout de seguridad: si en 4 segundos UMP no responde (offline/bloqueo), proceder
+    bool proceedCalled = false;
+    void safeProceed() {
+      if (!proceedCalled) {
+        proceedCalled = true;
+        _initializeAdsAndProceed();
+      }
+    }
+
+    Timer(const Duration(seconds: 4), () {
+      safeProceed();
+    });
+
     // 2. Request Consent & Initialize Ads
     ConsentRequestParameters params = ConsentRequestParameters();
     ConsentInformation.instance.requestConsentInfoUpdate(
@@ -64,22 +88,22 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
               var status = await ConsentInformation.instance.getConsentStatus();
               if (status == ConsentStatus.required) {
                 consentForm.show((FormError? formError) {
-                  _initializeAdsAndProceed();
+                  safeProceed();
                 });
               } else {
-                _initializeAdsAndProceed();
+                safeProceed();
               }
             },
             (FormError formError) {
-              _initializeAdsAndProceed();
+              safeProceed();
             },
           );
         } else {
-          _initializeAdsAndProceed();
+          safeProceed();
         }
       },
       (FormError formError) {
-        _initializeAdsAndProceed();
+        safeProceed();
       },
     );
   }
@@ -122,8 +146,14 @@ class _SudokuAppState extends State<SudokuApp> with WidgetsBindingObserver {
     }
   }
 
-  void changeTheme() =>
-      setState(() => _themeIndex = (_themeIndex + 1) % myThemes.length);
+  void changeTheme() async {
+    final newIndex = (_themeIndex + 1) % myThemes.length;
+    setState(() => _themeIndex = newIndex);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('theme_index', newIndex);
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {

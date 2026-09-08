@@ -99,21 +99,27 @@ class SudokuBoard extends StatelessWidget {
                             ),
                           ),
                         ),
-                      if (board[index] == 0 && notes[index] != null)
+                      if (board[index] == 0 && notes[index] != null && notes[index]!.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.all(1),
-                          child: Wrap(
-                            children: (List<int>.from(notes[index]!)..sort()).map((n) => SizedBox(
-                                  width: 10,
-                                  height: 10,
-                                  child: Text(
-                                    "$n",
-                                    style: TextStyle(
-                                      fontSize: 8,
-                                      color: colors.primary.withAlpha(153),
-                                    ),
+                          padding: const EdgeInsets.all(1.5),
+                          child: GridView.count(
+                            crossAxisCount: 3,
+                            physics: const NeverScrollableScrollPhysics(),
+                            children: List.generate(9, (n) {
+                              final num = n + 1;
+                              final hasNote = notes[index]!.contains(num);
+                              return Center(
+                                child: Text(
+                                  hasNote ? "$num" : "",
+                                  style: TextStyle(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: colors.primary.withAlpha(180),
+                                    height: 1.0,
                                   ),
-                                )).toList(),
+                                ),
+                              );
+                            }),
                           ),
                         ),
                     ],

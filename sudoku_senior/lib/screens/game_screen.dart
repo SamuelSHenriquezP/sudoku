@@ -350,6 +350,26 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _saveGame();
   }
 
+  Set<int> get _completedNumbers {
+    final targetCount = currentGridSize;
+    final counts = <int, int>{};
+    for (int i = 0; i < currentGridSize * currentGridSize; i++) {
+      final val = board.length > i ? board[i] : 0;
+      if (val != 0) {
+        if (solution.length > i && val == solution[i]) {
+          counts[val] = (counts[val] ?? 0) + 1;
+        }
+      }
+    }
+    final result = <int>{};
+    counts.forEach((digit, count) {
+      if (count >= targetCount) {
+        result.add(digit);
+      }
+    });
+    return result;
+  }
+
   void _placeNumber(int num) {
     setState(() {
       board[selectedIndex] = num;
@@ -357,6 +377,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       _cleanNotes(selectedIndex, num);
     });
     AudioManager.playClick();
+    if (_completedNumbers.contains(num)) {
+      AudioManager.vibrateSuccess();
+    } else {
+      AudioManager.vibrateLight();
+    }
     _checkWin();
   }
 
@@ -365,6 +390,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final willLose = mistakes + 1 >= 3;
     setState(() => mistakes++);
     AudioManager.playError();
+    AudioManager.vibrateError();
     if (willLose) {
       _showGameOverDialog();
     } else {
@@ -527,6 +553,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         GameStorage.clearGameState();
         if (currentMode == 'reto') GameStorage.incrementRetoWon(difficulty: currentDifficulty);
         AudioManager.playWin();
+        AudioManager.vibrateSuccess();
 
         // Guardar referencia al navigator antes del await para evitar context inválido
         final nav = Navigator.of(context);
@@ -922,6 +949,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                           notes: notes,
                           selectedIndex: selectedIndex,
                           onCellTap: (index) {
+                            AudioManager.vibrateSelection();
                             setState(() => selectedIndex = index);
                           },
                         )
@@ -932,6 +960,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                           notes: notes,
                           selectedIndex: selectedIndex,
                           onCellTap: (index) {
+                            AudioManager.vibrateSelection();
                             setState(() => selectedIndex = index);
                           },
                         ),
@@ -939,7 +968,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       if (currentGridSize == 4)
                         MiniNumPad(
                           isPencilMode: isPencilMode,
-                          onTogglePencil: () => setState(() => isPencilMode = !isPencilMode),
+                          completedNumbers: _completedNumbers,
+                          onTogglePencil: () {
+                            AudioManager.vibrateSelection();
+                            setState(() => isPencilMode = !isPencilMode);
+                          },
                           onNumberInput: _onInput,
                           onErase: () {
                             if (selectedIndex != -1 && initial[selectedIndex] == 0) {
@@ -961,7 +994,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                       else
                         NumPad(
                           isPencilMode: isPencilMode,
-                          onTogglePencil: () => setState(() => isPencilMode = !isPencilMode),
+                          completedNumbers: _completedNumbers,
+                          onTogglePencil: () {
+                            AudioManager.vibrateSelection();
+                            setState(() => isPencilMode = !isPencilMode);
+                          },
                           onNumberInput: _onInput,
                           onErase: () {
                             if (selectedIndex != -1 && initial[selectedIndex] == 0) {
