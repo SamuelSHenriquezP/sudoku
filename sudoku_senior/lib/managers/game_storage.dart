@@ -63,6 +63,7 @@ class GameState {
 
 class GameStorage {
   static const String _keyState = 'current_game_state';
+  static const String _keyStateBackup = 'current_game_state_backup';
   static const String _keyStatsRetoWon = 'stats_reto_won';
   static const String _keyStatsRetoPlayed = 'stats_reto_played';
   static const String _keyStatsMaestroWon = 'stats_maestro_won';
@@ -71,31 +72,43 @@ class GameStorage {
   // Se desbloquea Diabólico tras ganar 10 partidas en Modo Reto Maestro
   static const int _diabolicoUnlockThreshold = 10;
 
+  static SharedPreferences? _cachedPrefs;
+  static Future<SharedPreferences> _getPrefs() async {
+    _cachedPrefs ??= await SharedPreferences.getInstance();
+    return _cachedPrefs!;
+  }
+
   static Future<void> saveGameState(GameState state) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyState, jsonEncode(state.toJson()));
+    try {
+      final prefs = await _getPrefs();
+      final existing = prefs.getString(_keyState);
+      if (existing != null && existing.isNotEmpty) {
+        await prefs.setString(_keyStateBackup, existing);
+      }
+      await prefs.setString(_keyState, jsonEncode(state.toJson()));
+    } catch (_) {}
   }
 
   // --- Tutorial ---
   static Future<bool> hasTutorialSeen() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     return prefs.getBool(_keyTutorialSeen) ?? false;
   }
 
   static Future<void> setTutorialSeen() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.setBool(_keyTutorialSeen, true);
   }
 
   // --- Quotes / Recompensas ---
   static Future<List<int>> getUnlockedQuotes() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     final List<String> list = prefs.getStringList(_keyUnlockedQuotes) ?? [];
     return list.map((e) => int.tryParse(e)).where((e) => e != null).cast<int>().toList();
   }
 
   static Future<void> unlockQuote(int id) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     List<String> list = prefs.getStringList(_keyUnlockedQuotes) ?? [];
     if (!list.contains(id.toString())) {
       list.add(id.toString());
@@ -104,11 +117,20 @@ class GameStorage {
   }
 
   static Future<GameState?> loadGameState() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     final data = prefs.getString(_keyState);
-    if (data != null) {
+    if (data != null && data.isNotEmpty) {
       try {
         return GameState.fromJson(jsonDecode(data));
+      } catch (e) {
+        // Main state corrupted, try backup
+      }
+    }
+
+    final backup = prefs.getString(_keyStateBackup);
+    if (backup != null && backup.isNotEmpty) {
+      try {
+        return GameState.fromJson(jsonDecode(backup));
       } catch (e) {
         return null;
       }
@@ -117,12 +139,13 @@ class GameStorage {
   }
 
   static Future<void> clearGameState() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     await prefs.remove(_keyState);
+    await prefs.remove(_keyStateBackup);
   }
 
   static Future<void> incrementRetoPlayed() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     int current = prefs.getInt(_keyStatsRetoPlayed) ?? 0;
     await prefs.setInt(_keyStatsRetoPlayed, current + 1);
   }
