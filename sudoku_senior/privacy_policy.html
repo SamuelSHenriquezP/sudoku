@@ -1,77 +1,119 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Política de Privacidad - Sudoku Zen</title>
     <style>
+        :root {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --muted-color: #64748b;
+            --primary: #0284c7;
+            --border-color: #e2e8f0;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #F9F7F2;
-        }
-        h1, h2 {
-            color: #2c3e50;
-        }
-        h1 {
-            border-bottom: 2px solid #e0e0e0;
-            padding-bottom: 10px;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 24px 16px;
         }
         .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            max-width: 820px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
         }
-        a {
-            color: #3498db;
-            text-decoration: none;
+        h1 {
+            color: var(--text-color);
+            font-size: 2rem;
+            margin-top: 0;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 16px;
         }
-        a:hover {
-            text-decoration: underline;
+        h2 {
+            color: #0f172a;
+            font-size: 1.25rem;
+            margin-top: 28px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        p, li {
+            font-size: 1rem;
+            color: #334155;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        .badge {
+            display: inline-block;
+            background: #e0f2fe;
+            color: #0369a1;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 16px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--muted-color);
+            text-align: center;
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <span class="badge">Google Play Compliance</span>
         <h1>Política de Privacidad</h1>
-        <p><strong>Última actualización:</strong> 15 de julio de 2026</p>
+        <p><strong>Aplicación:</strong> Sudoku Zen</p>
+        <p><strong>Última actualización:</strong> Octubre de 2026</p>
+        <p><strong>Desarrollador:</strong> Inventus Tech Studio / Samuel Henríquez</p>
+        <p><strong>Contacto:</strong> <a href="mailto:samuelshenriquezp@gmail.com">samuelshenriquezp@gmail.com</a></p>
 
-        <p><strong>inventusTechStudio</strong> ("nosotros", "nuestro" o "nos") opera la aplicación móvil <strong>Sudoku Zen</strong> (en adelante, el "Servicio").</p>
+        <h2>1. Compromiso de Privacidad</h2>
+        <p>En <strong>Sudoku Zen</strong> valoramos y respetamos tu privacidad. Esta política de privacidad describe cómo se gestiona la información dentro de la aplicación móvil.</p>
 
-        <p>Esta página le informa sobre nuestras políticas en materia de recopilación, uso y divulgación de datos personales cuando utiliza nuestro Servicio, así como las opciones de las que dispone en relación con esos datos.</p>
-
-        <h2>1. Recopilación y Uso de la Información</h2>
-        <p>Para proporcionar y mejorar nuestro Servicio, no requerimos que cree una cuenta de usuario ni que nos proporcione información personal identificable directamente (como nombre, correo electrónico o número de teléfono).</p>
-        <p><strong>Datos locales:</strong> El progreso del juego, las estadísticas y la configuración se guardan localmente en su dispositivo mediante <em>SharedPreferences</em>. Esta información no se transmite a nuestros servidores.</p>
-
-        <h2>2. Servicios de Terceros (Anuncios)</h2>
-        <p>Nuestra aplicación utiliza servicios de terceros que pueden recopilar información utilizada para identificarlo con el fin de mostrar anuncios personalizados o realizar análisis. Específicamente, utilizamos <strong>Google AdMob</strong> para la monetización mediante anuncios publicitarios.</p>
-        <p>Google, como proveedor externo, utiliza cookies e identificadores de dispositivos móviles para publicar anuncios en nuestro Servicio. Puede obtener más información sobre cómo Google utiliza la información de sitios o aplicaciones que utilizan sus servicios visitando el siguiente enlace:</p>
+        <h2>2. Recopilación y Uso de Datos</h2>
+        <p><strong>Arquitectura Local y Sin Rastreo:</strong></p>
         <ul>
-            <li><a href="https://policies.google.com/technologies/ads" target="_blank">Política de privacidad y condiciones de publicidad de Google</a></li>
+            <li><strong>No recopilamos información personal identificable</strong> (como nombre, número de teléfono, dirección física ni contactos).</li>
+            <li><strong>Almacenamiento Local (Offline-first):</strong> Los datos generados por tu uso de la aplicación (como progreso, preferencias, estadísticas o configuraciones) se almacenan de forma local en tu dispositivo mediante almacenamiento cifrado/seguro de Android (SharedPreferences / SQLite).</li>
+            <li>No transmitimos ni vendemos tus datos a ningún servidor externo ni a terceros.</li>
         </ul>
 
-        <h2>3. Datos de Registro y Analítica</h2>
-        <p>En caso de error en la aplicación, podemos recopilar datos e información (a través de productos de terceros) en su teléfono llamados Datos de Registro (Log Data). Estos Datos de Registro pueden incluir información como la dirección de Protocolo de Internet ("IP") de su dispositivo, el nombre del dispositivo, la versión del sistema operativo, la configuración de la aplicación al utilizar nuestro Servicio, la hora y la fecha de su uso del Servicio y otras estadísticas.</p>
+        <h2>3. Permisos del Dispositivo</h2>
+        <p>La aplicación puede solicitar ciertos permisos del sistema operativo Android únicamente cuando son estrictamente necesarios para su funcionamiento:</p>
+        <ul>
+            <li><strong>Notificaciones / Alarmas exactas:</strong> Para enviar recordatorios o alertas programadas directamente en tu teléfono según tus preferencias.</li>
+            <li><strong>Vibración:</strong> Para retroalimentación táctil (*haptic feedback*) durante las interacciones.</li>
+            <li><strong>Inicio al reiniciar (*RECEIVE_BOOT_COMPLETED*):</strong> Para reprogramar tus recordatorios locales si el teléfono se reinicia.</li>
+        </ul>
 
-        <h2>4. Seguridad de los Datos</h2>
-        <p>Valoramos su confianza al proporcionarnos su información (aunque sea a través de servicios de terceros), por lo que nos esforzamos por utilizar medios comercialmente aceptables para protegerla. Sin embargo, recuerde que ningún método de transmisión por Internet o método de almacenamiento electrónico es 100% seguro y confiable, y no podemos garantizar su seguridad absoluta.</p>
+        <h2>4. Servicios de Terceros</h2>
+        <p>La aplicación utiliza las bibliotecas estándar del sistema Android y Flutter provistas por Google. Google Play Services puede recopilar identificadores de dispositivo no personales para diagnóstico técnico y prevención de fallos (*crash reporting*).</p>
 
-        <h2>5. Privacidad de los Menores</h2>
-        <p>Estos Servicios no están dirigidos a menores de 13 años. No recopilamos a sabiendas información de identificación personal de niños menores de 13 años. Si descubrimos que un niño menor de 13 años nos ha proporcionado información personal, la eliminaremos de inmediato. Si usted es un padre o tutor y sabe que su hijo nos ha proporcionado información personal, comuníquese con nosotros para que podamos tomar las medidas necesarias.</p>
+        <h2>5. Privacidad de Menores</h2>
+        <p>Nuestras aplicaciones están diseñadas para todo público y no recopilan intencionalmente ningún dato personal de menores de 13 años.</p>
 
-        <h2>6. Cambios en Esta Política de Privacidad</h2>
-        <p>Es posible que actualicemos nuestra Política de Privacidad de vez en cuando. Por lo tanto, se le recomienda revisar esta página periódicamente para ver si hay cambios. Le notificaremos sobre cualquier cambio publicando la nueva Política de Privacidad en esta página. Estos cambios entran en vigencia inmediatamente después de su publicación.</p>
+        <h2>6. Tus Derechos y Control</h2>
+        <p>Tienes control total sobre tus datos. Dado que todos los datos residen localmente en tu teléfono, puedes eliminarlos en cualquier momento simplemente limpiando los datos de la app en los ajustes de Android o desinstalando la aplicación.</p>
 
         <h2>7. Contacto</h2>
-        <p>Si tiene alguna pregunta o sugerencia sobre nuestra Política de Privacidad, no dude en ponerse en contacto con nosotros.</p>
-        <p><strong>Desarrollador:</strong> inventusTechStudio<br>
-        <strong>Aplicación:</strong> Sudoku Zen</p>
+        <p>Si tienes preguntas o dudas sobre esta política de privacidad, puedes contactarnos directamente en: <a href="mailto:samuelshenriquezp@gmail.com">samuelshenriquezp@gmail.com</a>.</p>
+
+        <div class="footer">
+            &copy; 2026 Inventus Tech Studio &bull; Todos los derechos reservados.
+        </div>
     </div>
 </body>
 </html>
