@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -84,23 +84,26 @@
         <p>En <strong>Sudoku Zen</strong> valoramos y respetamos tu privacidad. Esta política de privacidad describe cómo se gestiona la información dentro de la aplicación móvil.</p>
 
         <h2>2. Recopilación y Uso de Datos</h2>
-        <p><strong>Arquitectura Local y Sin Rastreo:</strong></p>
+        <p><strong>Almacenamiento Local de Progreso:</strong></p>
         <ul>
-            <li><strong>No recopilamos información personal identificable</strong> (como nombre, número de teléfono, dirección física ni contactos).</li>
-            <li><strong>Almacenamiento Local (Offline-first):</strong> Los datos generados por tu uso de la aplicación (como progreso, preferencias, estadísticas o configuraciones) se almacenan de forma local en tu dispositivo mediante almacenamiento cifrado/seguro de Android (SharedPreferences / SQLite).</li>
-            <li>No transmitimos ni vendemos tus datos a ningún servidor externo ni a terceros.</li>
+            <li><strong>No solicitamos registro ni cuentas de usuario:</strong> No recopilamos nombres, correos electrónicos, números de teléfono, direcciones físicas ni listas de contactos.</li>
+            <li><strong>Datos de Juego Locales:</strong> Tu progreso de partida actual, estadísticas del Modo Reto, pergaminos de sabiduría desbloqueados y preferencias de audio/tema se guardan exclusivamente de forma local en tu dispositivo mediante <code>SharedPreferences</code>.</li>
         </ul>
 
-        <h2>3. Permisos del Dispositivo</h2>
-        <p>La aplicación puede solicitar ciertos permisos del sistema operativo Android únicamente cuando son estrictamente necesarios para su funcionamiento:</p>
+        <h2>3. Publicidad y Servicios de Terceros (Google AdMob)</h2>
+        <p>Para mantener la aplicación gratuita, <strong>Sudoku Zen</strong> integra el SDK de <strong>Google AdMob</strong> para mostrar anuncios (banners, intersticiales al finalizar partidas y anuncios bonificados opcionales a cambio de pistas).</p>
         <ul>
-            <li><strong>Notificaciones / Alarmas exactas:</strong> Para enviar recordatorios o alertas programadas directamente en tu teléfono según tus preferencias.</li>
-            <li><strong>Vibración:</strong> Para retroalimentación táctil (*haptic feedback*) durante las interacciones.</li>
-            <li><strong>Inicio al reiniciar (*RECEIVE_BOOT_COMPLETED*):</strong> Para reprogramar tus recordatorios locales si el teléfono se reinicia.</li>
+            <li><strong>Identificador de Publicidad (Advertising ID):</strong> Google AdMob puede utilizar el identificador de publicidad de tu dispositivo Android (<code>com.google.android.gms.permission.AD_ID</code>), dirección IP aproximada y datos de interacción con anuncios para mostrar publicidad relevante, limitar la frecuencia de anuncios y prevenir el fraude.</li>
+            <li><strong>Gestión de Consentimiento (GDPR / UMP):</strong> En las regiones donde aplica la normativa de privacidad (como el Espacio Económico Europeo y Reino Unido), la aplicación solicita tu consentimiento mediante la plataforma oficial de Google (User Messaging Platform) antes de cargar anuncios, y puedes modificar tus preferencias en cualquier momento desde la pantalla de <strong>Ajustes</strong> de la aplicación.</li>
+            <li>Puedes consultar cómo Google utiliza la información de aplicaciones que usan sus servicios en: <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">https://policies.google.com/technologies/partner-sites</a>.</li>
         </ul>
 
-        <h2>4. Servicios de Terceros</h2>
-        <p>La aplicación utiliza las bibliotecas estándar del sistema Android y Flutter provistas por Google. Google Play Services puede recopilar identificadores de dispositivo no personales para diagnóstico técnico y prevención de fallos (*crash reporting*).</p>
+        <h2>4. Permisos del Dispositivo</h2>
+        <p>La aplicación solicita únicamente los permisos técnicos indispensables para su funcionamiento:</p>
+        <ul>
+            <li><strong>Acceso a Internet y Estado de Red (<code>INTERNET</code>, <code>ACCESS_NETWORK_STATE</code>):</strong> Necesarios para cargar anuncios de Google AdMob y el formulario de consentimiento de privacidad. El juego funciona sin conexión cuando no hay red disponible.</li>
+            <li><strong>Identificador de Publicidad (<code>com.google.android.gms.permission.AD_ID</code>):</strong> Requerido por Google Play Services para el funcionamiento de Google AdMob en Android 13 o superior.</li>
+        </ul>
 
         <h2>5. Privacidad de Menores</h2>
         <p>Nuestras aplicaciones están diseñadas para todo público y no recopilan intencionalmente ningún dato personal de menores de 13 años.</p>

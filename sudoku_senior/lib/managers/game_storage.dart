@@ -151,7 +151,7 @@ class GameStorage {
   }
 
   static Future<void> incrementRetoWon({int difficulty = 1}) async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     int current = prefs.getInt(_keyStatsRetoWon) ?? 0;
     await prefs.setInt(_keyStatsRetoWon, current + 1);
     // Contabilizar si fue una victoria en Maestro (dificultad 3)
@@ -162,18 +162,18 @@ class GameStorage {
   }
 
   static Future<bool> isDiabolicoUnlocked() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     int maestroWon = prefs.getInt(_keyStatsMaestroWon) ?? 0;
     return maestroWon >= _diabolicoUnlockThreshold;
   }
 
   static Future<int> getMaestroWins() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     return prefs.getInt(_keyStatsMaestroWon) ?? 0;
   }
 
   static Future<Map<String, int>> getStats() async {
-    final prefs = await SharedPreferences.getInstance();
+    final prefs = await _getPrefs();
     return {
       'played': prefs.getInt(_keyStatsRetoPlayed) ?? 0,
       'won': prefs.getInt(_keyStatsRetoWon) ?? 0,
