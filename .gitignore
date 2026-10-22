@@ -1,4 +1,4 @@
-﻿# --- Seguridad y Credenciales ---
+# --- Seguridad y Credenciales ---
 *.jks
 *.keystore
 *.p12
@@ -7,6 +7,9 @@
 *.properties
 !gradle.properties
 !gradle-wrapper.properties
+**/key.properties*
+!**/key.properties.example
+**/local.properties*
 key.properties
 local.properties
 .env
@@ -25,6 +28,11 @@ hs_err_pid*
 .pub/
 .pub-cache/
 /build/
+**/build/
+**/android/build/
+**/android/.gradle/
+*.apk
+*.aab
 
 # --- SO e IDEs ---
 .DS_Store
@@ -34,6 +42,6 @@ Thumbs.db
 .history/
 .idea/
 
-# Allow release APKs
-!release/
-!release/*.apk
+# Release binaries
+release/
+**/release/
