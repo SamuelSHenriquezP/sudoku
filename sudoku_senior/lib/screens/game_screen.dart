@@ -578,96 +578,223 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           context: context,
           builder: (ctx) {
             final colors = Theme.of(ctx).colorScheme;
-            return AlertDialog(
-              backgroundColor: colors.surface,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-              title: Text(
-                isNew ? "¡Nuevo Pergamino Desbloqueado!" : "¡Completado!",
-                style: TextStyle(
-                  color: colors.primary,
-                  fontWeight: FontWeight.w900,
-                  fontFamily: 'Serif',
-                  letterSpacing: 1.2,
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: 400,
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.84,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Tiempo: ${_formatTime(elapsedTime)}",
-                    style: TextStyle(color: colors.primary.withAlpha(180)),
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
-                    decoration: BoxDecoration(
-                      color: colors.surface,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: colors.primary.withAlpha(80), width: 1.6),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colors.primary.withAlpha(12),
-                          blurRadius: 18,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          "\"${rewardQuote.text}\"",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontStyle: FontStyle.italic,
-                            color: colors.primary,
-                            height: 1.5,
-                            fontFamily: 'Serif',
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 16),
-                        Divider(color: colors.primary.withAlpha(40), thickness: 1),
-                        const SizedBox(height: 14),
-                        Text(
-                          "- ${rewardQuote.author}",
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: colors.secondary,
-                            fontFamily: 'Serif',
-                          ),
-                          textAlign: TextAlign.right,
-                        ),
-                        if (rewardQuote.meaning != null) ...[
-                          const SizedBox(height: 14),
-                          Text(
-                            rewardQuote.meaning!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: colors.primary.withAlpha(160),
-                              height: 1.4,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Rodillo superior del pergamino
+                    _buildScrollRod(colors),
+                    // Cuerpo del pergamino con doble marco editorial
+                    Flexible(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.all(5),
+                        decoration: BoxDecoration(
+                          color: colors.surface,
+                          border: Border.symmetric(
+                            vertical: BorderSide(
+                              color: colors.primary.withAlpha(110),
+                              width: 1.4,
                             ),
-                            textAlign: TextAlign.center,
                           ),
-                        ]
-                      ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(45),
+                              blurRadius: 22,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: colors.primary.withAlpha(200),
+                              width: 1.8,
+                            ),
+                          ),
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Sello Hanko + Etiqueta superior
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: colors.secondary,
+                                        border: Border.all(
+                                          color: colors.secondary,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        isNew ? "道" : "禅",
+                                        style: TextStyle(
+                                          color: colors.surface,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold,
+                                          fontFamily: 'Serif',
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Flexible(
+                                      child: Text(
+                                        isNew
+                                            ? "PERGAMINO DESBLOQUEADO"
+                                            : "PARTIDA COMPLETADA",
+                                        style: TextStyle(
+                                          color: colors.secondary,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 2.2,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Tiempo y nivel
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colors.primary.withAlpha(12),
+                                    border: Border.all(
+                                      color: colors.primary.withAlpha(45),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    "Tiempo  ${_formatTime(elapsedTime)}",
+                                    style: TextStyle(
+                                      color: colors.primary.withAlpha(190),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 1.1,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 18),
+                                // Divisor ornamental superior
+                                _buildScrollOrnament(colors),
+                                const SizedBox(height: 16),
+                                // Texto de la frase dentro de comillas japonesas
+                                Text(
+                                  "「 ${rewardQuote.text} 」",
+                                  style: TextStyle(
+                                    fontSize: 16.5,
+                                    fontStyle: FontStyle.italic,
+                                    color: colors.primary,
+                                    height: 1.55,
+                                    fontFamily: 'Serif',
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 16),
+                                // Autor alineado con acento del sello
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Container(
+                                      width: 16,
+                                      height: 1.5,
+                                      color: colors.secondary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        rewardQuote.author,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: colors.secondary,
+                                          fontFamily: 'Serif',
+                                          letterSpacing: 0.4,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (rewardQuote.meaning != null) ...[
+                                  const SizedBox(height: 16),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: colors.primary.withAlpha(10),
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: colors.secondary,
+                                          width: 2.5,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      rewardQuote.meaning!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colors.primary.withAlpha(175),
+                                        height: 1.45,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 18),
+                                _buildScrollOrnament(colors),
+                                const SizedBox(height: 18),
+                                // Botón rectangular minimalista
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: FilledButton(
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: colors.primary,
+                                      foregroundColor: colors.surface,
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: const RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.zero,
+                                      ),
+                                    ),
+                                    onPressed: () {
+                                      Navigator.pop(ctx);
+                                      _adManager.showInterstitial(() {
+                                        if (nav.canPop()) nav.pop();
+                                      });
+                                    },
+                                    child: const Text(
+                                      "VOLVER AL MENÚ",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              actions: [
-                FilledButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _adManager.showInterstitial(() {
-                      if (nav.canPop()) nav.pop();
-                    });
-                  },
-                  child: const Text("Volver al Menú"),
+                    // Rodillo inferior del pergamino
+                    _buildScrollRod(colors),
+                  ],
                 ),
-              ],
+              ),
             );
           },
         );
@@ -752,6 +879,60 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildScrollRod(ColorScheme colors) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 14,
+          decoration: BoxDecoration(
+            color: colors.secondary,
+            border: Border.all(color: colors.primary, width: 1.2),
+          ),
+        ),
+        Expanded(
+          child: Container(
+            height: 10,
+            decoration: BoxDecoration(
+              color: colors.primary,
+              border: Border.symmetric(
+                horizontal: BorderSide(color: colors.secondary.withAlpha(140), width: 1),
+              ),
+            ),
+          ),
+        ),
+        Container(
+          width: 10,
+          height: 14,
+          decoration: BoxDecoration(
+            color: colors.secondary,
+            border: Border.all(color: colors.primary, width: 1.2),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScrollOrnament(ColorScheme colors) {
+    return Row(
+      children: [
+        Expanded(child: Divider(color: colors.primary.withAlpha(70), thickness: 1)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Transform.rotate(
+            angle: 0.785398, // 45 deg diamond
+            child: Container(
+              width: 6,
+              height: 6,
+              color: colors.secondary,
+            ),
+          ),
+        ),
+        Expanded(child: Divider(color: colors.primary.withAlpha(70), thickness: 1)),
+      ],
     );
   }
 
