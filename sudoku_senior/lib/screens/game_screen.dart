@@ -41,7 +41,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   List<int> initial = [];
   List<int> solution = [];
   Map<int, List<int>> notes = {};
-  
+  String? _dailyDate;
+
   int selectedIndex = -1;
   bool isPencilMode = false;
   int mistakes = 0;
@@ -66,10 +67,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    
+
     // Asegurar que la música de fondo suene en la partida
     AudioManager.playGameMusic();
-    
+
     _adManager = AdManager();
     // Crear banner con listener que actualiza UI al cargar
     _bannerAd = BannerAd(
@@ -103,7 +104,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         setState(() {
           elapsedTime++;
         });
-        
+
         if (elapsedTime >= 600 && !_tenMinuteRewardOffered) {
           _tenMinuteRewardOffered = true;
           _showTenMinuteReward();
@@ -122,9 +123,14 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       builder: (ctx) {
         final colors = Theme.of(ctx).colorScheme;
         return AlertDialog(
-          title: Text("¡Llevas 10 minutos!", style: TextStyle(color: colors.primary)),
-          content: Text("Tómate un respiro. Mira un video corto y recibe 1 pista de regalo para continuar tu partida.",
-              style: TextStyle(color: colors.primary.withAlpha(180))),
+          title: Text(
+            "¡Llevas 10 minutos!",
+            style: TextStyle(color: colors.primary),
+          ),
+          content: Text(
+            "Tómate un respiro. Mira un video corto y recibe 1 pista de regalo para continuar tu partida.",
+            style: TextStyle(color: colors.primary.withAlpha(180)),
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -137,14 +143,17 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
               onPressed: () {
                 Navigator.pop(ctx);
                 _adManager.showRewarded(
-                  () { // onUserEarnedReward
+                  () {
+                    // onUserEarnedReward
                     if (mounted) {
                       setState(() {
                         helpCount += 1;
                         _isPaused = false;
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("¡Has recibido 1 pista gratis!")),
+                        const SnackBar(
+                          content: Text("¡Has recibido 1 pista gratis!"),
+                        ),
                       );
                     }
                   },
@@ -152,7 +161,11 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
                     if (mounted) {
                       setState(() => _isPaused = false);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Anuncio no disponible. Intenta de nuevo más tarde.")),
+                        const SnackBar(
+                          content: Text(
+                            "Anuncio no disponible. Intenta de nuevo más tarde.",
+                          ),
+                        ),
                       );
                     }
                   },
@@ -182,6 +195,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         currentMode = state.mode;
         currentDifficulty = state.difficulty;
         currentGridSize = state.gridSize;
+        _dailyDate = state.dailyDate;
         _isGenerating = false;
       });
       _startTimer();
@@ -193,6 +207,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     }
   }
 
+  bool get _isChallengeMode => currentMode == 'reto' || currentMode == 'daily';
+
   Future<void> _newGame() async {
     setState(() => _isGenerating = true);
 
@@ -200,6 +216,12 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     final GeneratedPuzzle puzzle;
     if (currentGridSize == 4) {
       puzzle = await SudokuEngine4x4.generateAsync();
+    } else if (currentMode == 'daily') {
+      currentDifficulty = 2;
+      _dailyDate = GameStorage.formatDateKey(DateTime.now());
+      puzzle = await SudokuEngine.generateDailyAsync(
+        DateTime.parse(_dailyDate!),
+      );
     } else {
       puzzle = await SudokuEngine.generateAsync(currentDifficulty);
     }
@@ -211,11 +233,14 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       board = List.from(puzzle.puzzle);
       notes = {};
       mistakes = 0;
+      helpCount = 3;
+      _gameFinished = false;
       selectedIndex = -1;
       elapsedTime = 0;
       undoStack.clear();
       _isPaused = false;
-      _tenMinuteRewardOffered = false; // Permitir la recompensa de 10 min en la nueva partida
+      _tenMinuteRewardOffered =
+          false; // Permitir la recompensa de 10 min en la nueva partida
       _isGenerating = false;
     });
     _saveGame();
@@ -236,9 +261,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
         context,
         PageRouteBuilder(
           opaque: false,
-          pageBuilder: (context, animation, secondaryAnimation) => TutorialScreen(
-            onFinished: () => Navigator.pop(context),
-          ),
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              TutorialScreen(onFinished: () => Navigator.pop(context)),
         ),
       );
       if (mounted) setState(() => _isPaused = false);
@@ -247,18 +271,21 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   void _saveGame() {
     if (board.isEmpty || _gameFinished) return;
-    GameStorage.saveGameState(GameState(
-      board: board,
-      initial: initial,
-      solution: solution,
-      notes: notes,
-      mistakes: mistakes,
-      helpCount: helpCount,
-      elapsedTime: elapsedTime,
-      mode: currentMode,
-      difficulty: currentDifficulty,
-      gridSize: currentGridSize,
-    ));
+    GameStorage.saveGameState(
+      GameState(
+        board: board,
+        initial: initial,
+        solution: solution,
+        notes: notes,
+        mistakes: mistakes,
+        helpCount: helpCount,
+        elapsedTime: elapsedTime,
+        mode: currentMode,
+        difficulty: currentDifficulty,
+        gridSize: currentGridSize,
+        dailyDate: _dailyDate,
+      ),
+    );
   }
 
   @override
@@ -277,7 +304,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       if (mounted) setState(() => _isPaused = true);
       _saveGame();
     } else if (state == AppLifecycleState.resumed) {
@@ -309,7 +337,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
 
     if (isPencilMode) {
       _pushUndo();
-      
+
       setState(() {
         if (notes[selectedIndex] == null) notes[selectedIndex] = [];
         if (notes[selectedIndex]!.contains(num)) {
@@ -323,7 +351,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       if (board[selectedIndex] == num) return;
       _pushUndo();
 
-      if (currentMode == 'reto') {
+      if (_isChallengeMode) {
         if (solution[selectedIndex] == num) {
           _placeNumber(num);
         } else {
@@ -336,7 +364,9 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text("Ya existe ese número en la fila, columna o caja."),
+                content: Text(
+                  "Ya existe ese número en la fila, columna o caja.",
+                ),
                 duration: Duration(milliseconds: 700),
               ),
             );
@@ -350,24 +380,18 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     _saveGame();
   }
 
+  Map<int, int> get _numberCounts => SudokuEngine.calculateNumberCounts(
+    board,
+    solution,
+    gridSize: currentGridSize,
+  );
+
   Set<int> get _completedNumbers {
-    final targetCount = currentGridSize;
-    final counts = <int, int>{};
-    for (int i = 0; i < currentGridSize * currentGridSize; i++) {
-      final val = board.length > i ? board[i] : 0;
-      if (val != 0) {
-        if (solution.length > i && val == solution[i]) {
-          counts[val] = (counts[val] ?? 0) + 1;
-        }
-      }
-    }
-    final result = <int>{};
-    counts.forEach((digit, count) {
-      if (count >= targetCount) {
-        result.add(digit);
-      }
-    });
-    return result;
+    final counts = _numberCounts;
+    return {
+      for (final entry in counts.entries)
+        if (entry.value >= currentGridSize) entry.key,
+    };
   }
 
   void _placeNumber(int num) {
@@ -396,25 +420,17 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Número incorrecto"), duration: Duration(milliseconds: 500)),
+          const SnackBar(
+            content: Text("Número incorrecto"),
+            duration: Duration(milliseconds: 500),
+          ),
         );
       }
     }
   }
 
   void _cleanNotes(int idx, int num) {
-    final gs = currentGridSize;
-    final box = gs == 4 ? 2 : 3;
-    int row = idx ~/ gs;
-    int col = idx % gs;
-    for (int i = 0; i < gs * gs; i++) {
-      int r = i ~/ gs;
-      int c = i % gs;
-      if (r == row || c == col ||
-          (r ~/ box == row ~/ box && c ~/ box == col ~/ box)) {
-        notes[i]?.remove(num);
-      }
-    }
+    SudokuEngine.cleanPeerNotes(notes, idx, num, gridSize: currentGridSize);
   }
 
   /// Verifica si colocar [num] en [idx] viola las reglas del tablero actual
@@ -429,7 +445,8 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       if (board[i] != num) continue;
       int r = i ~/ gs;
       int c = i % gs;
-      if (r == row || c == col ||
+      if (r == row ||
+          c == col ||
           (r ~/ box == row ~/ box && c ~/ box == col ~/ box)) {
         return true;
       }
@@ -515,14 +532,24 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             onPressed: () {
               Navigator.pop(ctx);
               _adManager.showRewarded(
-                () { // onUserEarnedReward
-                  if (mounted) setState(() { helpCount += 3; _isPaused = false; });
+                () {
+                  // onUserEarnedReward
+                  if (mounted) {
+                    setState(() {
+                      helpCount += 3;
+                      _isPaused = false;
+                    });
+                  }
                 },
                 onAdFailed: () {
                   if (mounted) {
                     setState(() => _isPaused = false);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Anuncio no disponible. Intenta de nuevo más tarde.")),
+                      const SnackBar(
+                        content: Text(
+                          "Anuncio no disponible. Intenta de nuevo más tarde.",
+                        ),
+                      ),
                     );
                   }
                 },
@@ -536,6 +563,7 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _checkWin() async {
+    if (_gameFinished || _isGenerating) return;
     if (board.contains(0)) return;
 
     // Validar que todos los valores coincidan con la solución (todos los modos)
@@ -547,264 +575,336 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       }
     }
 
-      if (isWin) {
-        _timer?.cancel();
-        _gameFinished = true;
-        GameStorage.clearGameState();
-        if (currentMode == 'reto') GameStorage.incrementRetoWon(difficulty: currentDifficulty);
-        AudioManager.playWin();
-        AudioManager.vibrateSuccess();
-
-        // Guardar referencia al navigator antes del await para evitar context inválido
-        final nav = Navigator.of(context);
-
-        final unlockedIds = await GameStorage.getUnlockedQuotes();
-        List<ZenQuote> lockedQuotes = zenQuotes.where((q) => !unlockedIds.contains(q.id)).toList();
-
-        ZenQuote rewardQuote;
-        bool isNew = false;
-        if (lockedQuotes.isNotEmpty) {
-          rewardQuote = lockedQuotes[Random().nextInt(lockedQuotes.length)];
-          isNew = true;
-          await GameStorage.unlockQuote(rewardQuote.id);
-        } else {
-          rewardQuote = zenQuotes[Random().nextInt(zenQuotes.length)];
+    if (isWin) {
+      _timer?.cancel();
+      _gameFinished = true;
+      // Guardar referencia al navigator antes del await para evitar context inválido
+      final nav = Navigator.of(context);
+      GameStorage.clearGameState();
+      if (currentMode == 'reto') {
+        await GameStorage.incrementRetoWon(difficulty: currentDifficulty);
+      }
+      int? dailyStreak;
+      if (currentMode == 'daily') {
+        if (_dailyDate != null) {
+          dailyStreak = await GameStorage.markDailyCompleted(
+            date: DateTime.parse(_dailyDate!),
+          );
         }
+      }
+      if (currentMode == 'reto' && currentGridSize == 9) {
+        await GameStorage.recordDifficultyWin(
+          difficulty: currentDifficulty,
+          elapsedSeconds: elapsedTime,
+          mistakes: mistakes,
+        );
+      }
+      AudioManager.playWin();
+      AudioManager.vibrateSuccess();
 
-        if (!mounted) return;
+      final unlockedIds = await GameStorage.getUnlockedQuotes();
+      List<ZenQuote> lockedQuotes = zenQuotes
+          .where((q) => !unlockedIds.contains(q.id))
+          .toList();
 
-        showDialog(
-          barrierDismissible: false,
-          context: context,
-          builder: (ctx) {
-            final colors = Theme.of(ctx).colorScheme;
-            return Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: 400,
-                  maxHeight: MediaQuery.of(ctx).size.height * 0.84,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Rodillo superior del pergamino
-                    _buildScrollRod(colors),
-                    // Cuerpo del pergamino con doble marco editorial
-                    Flexible(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 10),
-                        padding: const EdgeInsets.all(5),
-                        decoration: BoxDecoration(
-                          color: colors.surface,
-                          border: Border.symmetric(
-                            vertical: BorderSide(
-                              color: colors.primary.withAlpha(110),
-                              width: 1.4,
-                            ),
+      ZenQuote rewardQuote;
+      bool isNew = false;
+      if (lockedQuotes.isNotEmpty) {
+        rewardQuote = lockedQuotes[Random().nextInt(lockedQuotes.length)];
+        isNew = true;
+        await GameStorage.unlockQuote(rewardQuote.id);
+      } else {
+        rewardQuote = zenQuotes[Random().nextInt(zenQuotes.length)];
+      }
+
+      if (!mounted) return;
+
+      showDialog(
+        barrierDismissible: false,
+        context: context,
+        builder: (ctx) {
+          final colors = Theme.of(ctx).colorScheme;
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 24,
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: 400,
+                maxHeight: MediaQuery.of(ctx).size.height * 0.84,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Rodillo superior del pergamino
+                  _buildScrollRod(colors),
+                  // Cuerpo del pergamino con doble marco editorial
+                  Flexible(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 10),
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: colors.surface,
+                        border: Border.symmetric(
+                          vertical: BorderSide(
+                            color: colors.primary.withAlpha(110),
+                            width: 1.4,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withAlpha(45),
-                              blurRadius: 22,
-                              offset: const Offset(0, 10),
-                            ),
-                          ],
                         ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(
-                              color: colors.primary.withAlpha(200),
-                              width: 1.8,
-                            ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(45),
+                            blurRadius: 22,
+                            offset: const Offset(0, 10),
                           ),
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Sello Hanko + Etiqueta superior
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 28,
-                                      height: 28,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: colors.secondary,
-                                        border: Border.all(
-                                          color: colors.secondary,
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        isNew ? "道" : "禅",
-                                        style: TextStyle(
-                                          color: colors.surface,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          fontFamily: 'Serif',
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Flexible(
-                                      child: Text(
-                                        isNew
-                                            ? "PERGAMINO DESBLOQUEADO"
-                                            : "PARTIDA COMPLETADA",
-                                        style: TextStyle(
-                                          color: colors.secondary,
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 2.2,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                // Tiempo y nivel
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colors.primary.withAlpha(12),
-                                    border: Border.all(
-                                      color: colors.primary.withAlpha(45),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    "Tiempo  ${_formatTime(elapsedTime)}",
-                                    style: TextStyle(
-                                      color: colors.primary.withAlpha(190),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 1.1,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                // Divisor ornamental superior
-                                _buildScrollOrnament(colors),
-                                const SizedBox(height: 16),
-                                // Texto de la frase dentro de comillas japonesas
-                                Text(
-                                  "「 ${rewardQuote.text} 」",
-                                  style: TextStyle(
-                                    fontSize: 16.5,
-                                    fontStyle: FontStyle.italic,
-                                    color: colors.primary,
-                                    height: 1.55,
-                                    fontFamily: 'Serif',
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 16),
-                                // Autor alineado con acento del sello
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      width: 16,
-                                      height: 1.5,
-                                      color: colors.secondary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        rewardQuote.author,
-                                        style: TextStyle(
-                                          fontSize: 13.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: colors.secondary,
-                                          fontFamily: 'Serif',
-                                          letterSpacing: 0.4,
-                                        ),
-                                        textAlign: TextAlign.right,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (rewardQuote.meaning != null) ...[
-                                  const SizedBox(height: 16),
+                        ],
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: colors.primary.withAlpha(200),
+                            width: 1.8,
+                          ),
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Sello Hanko + Etiqueta superior
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
                                   Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(12),
+                                    width: 28,
+                                    height: 28,
+                                    alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: colors.primary.withAlpha(10),
-                                      border: Border(
-                                        left: BorderSide(
-                                          color: colors.secondary,
-                                          width: 2.5,
-                                        ),
+                                      color: colors.secondary,
+                                      border: Border.all(
+                                        color: colors.secondary,
+                                        width: 1,
                                       ),
                                     ),
                                     child: Text(
-                                      rewardQuote.meaning!,
+                                      currentMode == 'daily'
+                                          ? "日"
+                                          : (isNew ? "道" : "禅"),
                                       style: TextStyle(
-                                        fontSize: 12,
-                                        color: colors.primary.withAlpha(175),
-                                        height: 1.45,
+                                        color: colors.surface,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Serif',
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Flexible(
+                                    child: Text(
+                                      currentMode == 'daily'
+                                          ? "SELLO DEL DÍA"
+                                          : (isNew
+                                                ? "PERGAMINO DESBLOQUEADO"
+                                                : "PARTIDA COMPLETADA"),
+                                      style: TextStyle(
+                                        color: colors.secondary,
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 2.2,
                                       ),
                                     ),
                                   ),
                                 ],
-                                const SizedBox(height: 18),
-                                _buildScrollOrnament(colors),
-                                const SizedBox(height: 18),
-                                // Botón rectangular minimalista
-                                SizedBox(
+                              ),
+                              const SizedBox(height: 12),
+                              // Tiempo y nivel
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.primary.withAlpha(12),
+                                  border: Border.all(
+                                    color: colors.primary.withAlpha(45),
+                                  ),
+                                ),
+                                child: Text(
+                                  "Tiempo  ${_formatTime(elapsedTime)}",
+                                  style: TextStyle(
+                                    color: colors.primary.withAlpha(190),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 1.1,
+                                  ),
+                                ),
+                              ),
+                              if (currentMode == 'daily' &&
+                                  dailyStreak != null) ...[
+                                const SizedBox(height: 10),
+                                Container(
                                   width: double.infinity,
-                                  child: FilledButton(
-                                    style: FilledButton.styleFrom(
-                                      backgroundColor: colors.primary,
-                                      foregroundColor: colors.surface,
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                      shape: const RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.zero,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colors.secondary.withAlpha(18),
+                                    border: Border.all(
+                                      color: colors.secondary.withAlpha(110),
+                                      width: 1.2,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        "🔥 Racha diaria: $dailyStreak ${dailyStreak == 1 ? 'día' : 'días'}",
+                                        style: TextStyle(
+                                          color: colors.secondary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.6,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        mistakes == 0
+                                            ? "Sello grabado · Bonus sin errores (0 fallos)"
+                                            : "Sello diario grabado · Pergamino especial",
+                                        style: TextStyle(
+                                          color: colors.primary.withAlpha(175),
+                                          fontSize: 11,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 18),
+                              // Divisor ornamental superior
+                              _buildScrollOrnament(colors),
+                              const SizedBox(height: 16),
+                              // Texto de la frase dentro de comillas japonesas
+                              Text(
+                                "「 ${rewardQuote.text} 」",
+                                style: TextStyle(
+                                  fontSize: 16.5,
+                                  fontStyle: FontStyle.italic,
+                                  color: colors.primary,
+                                  height: 1.55,
+                                  fontFamily: 'Serif',
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              // Autor alineado con acento del sello
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    width: 16,
+                                    height: 1.5,
+                                    color: colors.secondary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      rewardQuote.author,
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.secondary,
+                                        fontFamily: 'Serif',
+                                        letterSpacing: 0.4,
+                                      ),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (rewardQuote.meaning != null) ...[
+                                const SizedBox(height: 16),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: colors.primary.withAlpha(10),
+                                    border: Border(
+                                      left: BorderSide(
+                                        color: colors.secondary,
+                                        width: 2.5,
                                       ),
                                     ),
-                                    onPressed: () {
-                                      Navigator.pop(ctx);
-                                      _adManager.showInterstitial(() {
-                                        if (nav.canPop()) nav.pop();
-                                      });
-                                    },
-                                    child: const Text(
-                                      "VOLVER AL MENÚ",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 2,
-                                      ),
+                                  ),
+                                  child: Text(
+                                    rewardQuote.meaning!,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: colors.primary.withAlpha(175),
+                                      height: 1.45,
                                     ),
                                   ),
                                 ),
                               ],
-                            ),
+                              const SizedBox(height: 18),
+                              _buildScrollOrnament(colors),
+                              const SizedBox(height: 18),
+                              // Botón rectangular minimalista
+                              SizedBox(
+                                width: double.infinity,
+                                child: FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: colors.primary,
+                                    foregroundColor: colors.surface,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: const RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.zero,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    _adManager.showInterstitial(() {
+                                      if (nav.canPop()) nav.pop();
+                                    });
+                                  },
+                                  child: const Text(
+                                    "VOLVER AL MENÚ",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    // Rodillo inferior del pergamino
-                    _buildScrollRod(colors),
-                  ],
-                ),
+                  ),
+                  // Rodillo inferior del pergamino
+                  _buildScrollRod(colors),
+                ],
               ),
-            );
-          },
-        );
-      } else {
-        if ((currentMode == 'zen' || currentMode == 'aprendiz') && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("El tablero está lleno pero hay errores.")),
+            ),
           );
-        }
+        },
+      );
+    } else {
+      if ((currentMode == 'zen' || currentMode == 'aprendiz') && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("El tablero está lleno pero hay errores."),
+          ),
+        );
       }
+    }
   }
 
   static const List<String> _motivationalMessages = [
@@ -818,14 +918,18 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   ];
 
   void _showGameOverDialog() {
+    if (_gameFinished) return;
     _timer?.cancel();
     _gameFinished = true;
+    if (currentMode == 'reto' && currentGridSize == 9) {
+      GameStorage.recordDifficultyLoss(currentDifficulty);
+    }
     GameStorage.clearGameState();
     AudioManager.playFail();
     final nav = Navigator.of(context);
-    final msg = _motivationalMessages[
-      DateTime.now().millisecondsSinceEpoch % _motivationalMessages.length
-    ];
+    final msg =
+        _motivationalMessages[DateTime.now().millisecondsSinceEpoch %
+            _motivationalMessages.length];
     showDialog(
       barrierDismissible: false,
       context: context,
@@ -899,7 +1003,10 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
             decoration: BoxDecoration(
               color: colors.primary,
               border: Border.symmetric(
-                horizontal: BorderSide(color: colors.secondary.withAlpha(140), width: 1),
+                horizontal: BorderSide(
+                  color: colors.secondary.withAlpha(140),
+                  width: 1,
+                ),
               ),
             ),
           ),
@@ -919,19 +1026,19 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
   Widget _buildScrollOrnament(ColorScheme colors) {
     return Row(
       children: [
-        Expanded(child: Divider(color: colors.primary.withAlpha(70), thickness: 1)),
+        Expanded(
+          child: Divider(color: colors.primary.withAlpha(70), thickness: 1),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Transform.rotate(
             angle: 0.785398, // 45 deg diamond
-            child: Container(
-              width: 6,
-              height: 6,
-              color: colors.secondary,
-            ),
+            child: Container(width: 6, height: 6, color: colors.secondary),
           ),
         ),
-        Expanded(child: Divider(color: colors.primary.withAlpha(70), thickness: 1)),
+        Expanded(
+          child: Divider(color: colors.primary.withAlpha(70), thickness: 1),
+        ),
       ],
     );
   }
@@ -956,253 +1063,282 @@ class _GameScreenState extends State<GameScreen> with WidgetsBindingObserver {
       isGame: true,
       child: Scaffold(
         backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        leading: BackButton(
-          color: colors.primary,
-          onPressed: () {
-            _saveGame();
-            Navigator.pop(context);
-          },
-        ),
-        // Errores / modo (izquierda del título)
-        title: currentMode == 'reto'
-            ? Text(
-                "Errores: $mistakes/3",
-                style: TextStyle(fontSize: 15, color: colors.primary),
-              )
-            : Text(
-                currentMode == 'aprendiz' ? "Modo Aprendiz" : "Modo Zen",
-                style: TextStyle(fontSize: 15, color: colors.primary),
-              ),
-        // Timer de Reto + contador de Ayudas (derecha)
-        actions: [
-          if (currentMode == 'reto')
-            GestureDetector(
-              onTap: _togglePause,
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: colors.primary.withAlpha(25),
-                  // Sin borderRadius — consistente con el resto de la UI
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      _isPaused ? Icons.play_arrow : Icons.pause,
-                      size: 16,
-                      color: colors.primary,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatTime(elapsedTime),
-                      style: TextStyle(fontSize: 14, color: colors.primary),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          // Contador de ayudas
-          Padding(
-            padding: const EdgeInsets.only(right: 12, left: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.auto_awesome, size: 18, color: colors.primary),
-                const SizedBox(width: 2),
-                Text(
-                  "$helpCount",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: colors.primary,
-                  ),
-                ),
-              ],
-            ),
+        appBar: AppBar(
+          leading: BackButton(
+            color: colors.primary,
+            onPressed: () {
+              _saveGame();
+              Navigator.pop(context);
+            },
           ),
-        ],
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-      ),
-      bottomNavigationBar: _isBannerLoaded && _bannerAd != null
-          ? SafeArea(
-              top: false,
-              child: SizedBox(
-                width: double.infinity,
-                height: _bannerAd!.size.height.toDouble(),
-                child: AdWidget(ad: _bannerAd!),
-              ),
-            )
-          : null,
-      body: _isGenerating
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 24),
-                  Text(
-                    "Preparando el tablero...",
-                    style: TextStyle(fontSize: 16, color: colors.primary, letterSpacing: 1),
-                  ),
-                ],
-              ),
-            )
-          : _isPaused
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.pause_circle_outline, size: 80, color: colors.primary.withAlpha(128)),
-                  const SizedBox(height: 20),
-                  Text("PAUSADO", style: TextStyle(fontSize: 24, color: colors.primary, letterSpacing: 4)),
-                  const SizedBox(height: 40),
-                  FilledButton(
-                    onPressed: _togglePause,
-                    child: const Text("Continuar"),
-                  )
-                ],
-              ),
-            )
-          : Column(
-              children: [
-                // ── Barra de progreso (arriba del tablero) ──────────────
-                Builder(
-                  builder: (context) {
-                    final totalCells = currentGridSize * currentGridSize;
-                    final filledCount = board.where((val) => val != 0).length;
-                    final progressPercent = filledCount / totalCells;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(
-                            color: colors.primary.withAlpha(20),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            "${(progressPercent * 100).toInt()}%",
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: colors.secondary,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: LinearProgressIndicator(
-                              value: progressPercent,
-                              backgroundColor: colors.primary.withAlpha(15),
-                              valueColor: AlwaysStoppedAnimation<Color>(colors.secondary),
-                              minHeight: 4,
-                              borderRadius: BorderRadius.zero,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            "$filledCount / $totalCells",
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: colors.primary.withAlpha(150),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+          // Errores / modo (izquierda del título)
+          title: currentMode == 'daily'
+              ? Text(
+                  "Reto del Día · $mistakes/3",
+                  style: TextStyle(fontSize: 15, color: colors.primary),
+                )
+              : currentMode == 'reto'
+              ? Text(
+                  "Errores: $mistakes/3",
+                  style: TextStyle(fontSize: 15, color: colors.primary),
+                )
+              : Text(
+                  currentMode == 'aprendiz' ? "Modo Aprendiz" : "Modo Zen",
+                  style: TextStyle(fontSize: 15, color: colors.primary),
                 ),
-                // ── Tablero y Teclado agrupados en el centro ───────────
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+          // Timer de Reto + contador de Ayudas (derecha)
+          actions: [
+            if (_isChallengeMode)
+              GestureDetector(
+                onTap: _togglePause,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    color: colors.primary.withAlpha(25),
+                    // Sin borderRadius — consistente con el resto de la UI
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (currentGridSize == 4)
-                        MiniBoard(
-                          board: board,
-                          initial: initial,
-                          notes: notes,
-                          selectedIndex: selectedIndex,
-                          onCellTap: (index) {
-                            AudioManager.vibrateSelection();
-                            setState(() => selectedIndex = index);
-                          },
-                        )
-                      else
-                        SudokuBoard(
-                          board: board,
-                          initial: initial,
-                          notes: notes,
-                          selectedIndex: selectedIndex,
-                          onCellTap: (index) {
-                            AudioManager.vibrateSelection();
-                            setState(() => selectedIndex = index);
-                          },
-                        ),
-                      const SizedBox(height: 12),
-                      if (currentGridSize == 4)
-                        MiniNumPad(
-                          isPencilMode: isPencilMode,
-                          completedNumbers: _completedNumbers,
-                          onTogglePencil: () {
-                            AudioManager.vibrateSelection();
-                            setState(() => isPencilMode = !isPencilMode);
-                          },
-                          onNumberInput: _onInput,
-                          onErase: () {
-                            if (selectedIndex != -1 && initial[selectedIndex] == 0) {
-                              if (board[selectedIndex] != 0 ||
-                                  (notes[selectedIndex] != null &&
-                                      notes[selectedIndex]!.isNotEmpty)) {
-                                _pushUndo();
-                                setState(() {
-                                  board[selectedIndex] = 0;
-                                  notes.remove(selectedIndex);
-                                });
-                                _saveGame();
-                              }
-                            }
-                          },
-                          onHelp: _useHelp,
-                          onUndo: _onUndo,
-                        )
-                      else
-                        NumPad(
-                          isPencilMode: isPencilMode,
-                          completedNumbers: _completedNumbers,
-                          onTogglePencil: () {
-                            AudioManager.vibrateSelection();
-                            setState(() => isPencilMode = !isPencilMode);
-                          },
-                          onNumberInput: _onInput,
-                          onErase: () {
-                            if (selectedIndex != -1 && initial[selectedIndex] == 0) {
-                              if (board[selectedIndex] != 0 ||
-                                  (notes[selectedIndex] != null &&
-                                      notes[selectedIndex]!.isNotEmpty)) {
-                                _pushUndo();
-                                setState(() {
-                                  board[selectedIndex] = 0;
-                                  notes.remove(selectedIndex);
-                                });
-                                _saveGame();
-                              }
-                            }
-                          },
-                          onHelp: _useHelp,
-                          onUndo: _onUndo,
-                        ),
+                      Icon(
+                        _isPaused ? Icons.play_arrow : Icons.pause,
+                        size: 16,
+                        color: colors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        _formatTime(elapsedTime),
+                        style: TextStyle(fontSize: 14, color: colors.primary),
+                      ),
                     ],
                   ),
                 ),
-              ],
+              ),
+            // Contador de ayudas
+            Padding(
+              padding: const EdgeInsets.only(right: 12, left: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.auto_awesome, size: 18, color: colors.primary),
+                  const SizedBox(width: 2),
+                  Text(
+                    "$helpCount",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: colors.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ],
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+        ),
+        bottomNavigationBar: _isBannerLoaded && _bannerAd != null
+            ? SafeArea(
+                top: false,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: _bannerAd!.size.height.toDouble(),
+                  child: AdWidget(ad: _bannerAd!),
+                ),
+              )
+            : null,
+        body: _isGenerating
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 24),
+                    Text(
+                      "Preparando el tablero...",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: colors.primary,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : _isPaused
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.pause_circle_outline,
+                      size: 80,
+                      color: colors.primary.withAlpha(128),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      "PAUSADO",
+                      style: TextStyle(
+                        fontSize: 24,
+                        color: colors.primary,
+                        letterSpacing: 4,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    FilledButton(
+                      onPressed: _togglePause,
+                      child: const Text("Continuar"),
+                    ),
+                  ],
+                ),
+              )
+            : Column(
+                children: [
+                  // ── Barra de progreso (arriba del tablero) ──────────────
+                  Builder(
+                    builder: (context) {
+                      final totalCells = currentGridSize * currentGridSize;
+                      final filledCount = board.where((val) => val != 0).length;
+                      final progressPercent = filledCount / totalCells;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: colors.primary.withAlpha(20),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              "${(progressPercent * 100).toInt()}%",
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: colors.secondary,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: LinearProgressIndicator(
+                                value: progressPercent,
+                                backgroundColor: colors.primary.withAlpha(15),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  colors.secondary,
+                                ),
+                                minHeight: 4,
+                                borderRadius: BorderRadius.zero,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              "$filledCount / $totalCells",
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: colors.primary.withAlpha(150),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  // ── Tablero y Teclado agrupados en el centro ───────────
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (currentGridSize == 4)
+                          MiniBoard(
+                            board: board,
+                            initial: initial,
+                            notes: notes,
+                            selectedIndex: selectedIndex,
+                            onCellTap: (index) {
+                              AudioManager.vibrateSelection();
+                              setState(() => selectedIndex = index);
+                            },
+                          )
+                        else
+                          SudokuBoard(
+                            board: board,
+                            initial: initial,
+                            notes: notes,
+                            selectedIndex: selectedIndex,
+                            onCellTap: (index) {
+                              AudioManager.vibrateSelection();
+                              setState(() => selectedIndex = index);
+                            },
+                          ),
+                        const SizedBox(height: 12),
+                        if (currentGridSize == 4)
+                          MiniNumPad(
+                            isPencilMode: isPencilMode,
+                            completedNumbers: _completedNumbers,
+                            numberCounts: _numberCounts,
+                            onTogglePencil: () {
+                              AudioManager.vibrateSelection();
+                              setState(() => isPencilMode = !isPencilMode);
+                            },
+                            onNumberInput: _onInput,
+                            onErase: () {
+                              if (selectedIndex != -1 &&
+                                  initial[selectedIndex] == 0) {
+                                if (board[selectedIndex] != 0 ||
+                                    (notes[selectedIndex] != null &&
+                                        notes[selectedIndex]!.isNotEmpty)) {
+                                  _pushUndo();
+                                  setState(() {
+                                    board[selectedIndex] = 0;
+                                    notes.remove(selectedIndex);
+                                  });
+                                  _saveGame();
+                                }
+                              }
+                            },
+                            onHelp: _useHelp,
+                            onUndo: _onUndo,
+                          )
+                        else
+                          NumPad(
+                            isPencilMode: isPencilMode,
+                            completedNumbers: _completedNumbers,
+                            numberCounts: _numberCounts,
+                            onTogglePencil: () {
+                              AudioManager.vibrateSelection();
+                              setState(() => isPencilMode = !isPencilMode);
+                            },
+                            onNumberInput: _onInput,
+                            onErase: () {
+                              if (selectedIndex != -1 &&
+                                  initial[selectedIndex] == 0) {
+                                if (board[selectedIndex] != 0 ||
+                                    (notes[selectedIndex] != null &&
+                                        notes[selectedIndex]!.isNotEmpty)) {
+                                  _pushUndo();
+                                  setState(() {
+                                    board[selectedIndex] = 0;
+                                    notes.remove(selectedIndex);
+                                  });
+                                  _saveGame();
+                                }
+                              }
+                            },
+                            onHelp: _useHelp,
+                            onUndo: _onUndo,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }

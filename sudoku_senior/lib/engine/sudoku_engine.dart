@@ -26,6 +26,85 @@ class SudokuEngine {
     });
   }
 
+  /// Genera un tablero diario determinista a partir de [date].
+  /// Dos llamadas con el mismo año, mes y día producen exactamente el mismo
+  /// tablero y solución.
+  static GeneratedPuzzle generateDailyPuzzle(
+    DateTime date, {
+    int difficulty = 2,
+  }) {
+    final seed = date.year * 10000 + date.month * 100 + date.day;
+    final engine = SudokuEngine();
+    engine.generate(difficulty, random: Random(seed));
+    return GeneratedPuzzle(
+      List<int>.from(engine.solution),
+      List<int>.from(engine.puzzle),
+    );
+  }
+
+  /// Versión asíncrona en Isolate para generar el Reto del Día sin bloquear UI.
+  static Future<GeneratedPuzzle> generateDailyAsync(
+    DateTime date, {
+    int difficulty = 2,
+  }) {
+    final normalized = DateTime(date.year, date.month, date.day);
+    return Isolate.run(
+      () => generateDailyPuzzle(normalized, difficulty: difficulty),
+    );
+  }
+
+  /// Calcula cuántas veces está colocado correctamente cada dígito (1..[gridSize])
+  /// comparando [board] contra [solution].
+  static Map<int, int> calculateNumberCounts(
+    List<int> board,
+    List<int> solution, {
+    int gridSize = 9,
+  }) {
+    final counts = <int, int>{
+      for (int d = 1; d <= gridSize; d++) d: 0,
+    };
+    final total = gridSize * gridSize;
+    for (int i = 0; i < total && i < board.length && i < solution.length; i++) {
+      final val = board[i];
+      if (val >= 1 && val <= gridSize && val == solution[i]) {
+        counts[val] = (counts[val] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }
+
+  /// Limpia [num] de las notas ([notes]) de todas las celdas en la misma fila,
+  /// misma columna y mismo bloque que [cellIndex].
+  static void cleanPeerNotes(
+    Map<int, List<int>> notes,
+    int cellIndex,
+    int num, {
+    int gridSize = 9,
+  }) {
+    final total = gridSize * gridSize;
+    if (cellIndex < 0 || cellIndex >= total) return;
+
+    final box = gridSize == 4 ? 2 : 3;
+    final row = cellIndex ~/ gridSize;
+    final col = cellIndex % gridSize;
+
+    for (int i = 0; i < total; i++) {
+      final cellNotes = notes[i];
+      if (cellNotes == null || cellNotes.isEmpty) continue;
+
+      final r = i ~/ gridSize;
+      final c = i % gridSize;
+      if (r == row ||
+          c == col ||
+          (r ~/ box == row ~/ box && c ~/ box == col ~/ box)) {
+        cellNotes.remove(num);
+        if (cellNotes.isEmpty) {
+          notes.remove(i);
+        }
+      }
+    }
+  }
+
   // --- Dificultad: Agujeros por nivel ---
   // 1 = Principiante:  40 agujeros (~41 pistas)
   // 2 = Normal:        49 agujeros (~32 pistas)
@@ -41,28 +120,29 @@ class SudokuEngine {
     }
   }
 
-  void generate(int difficulty) {
+  void generate(int difficulty, {Random? random}) {
+    final rng = random ?? Random();
     solution = List.filled(81, 0);
-    _fillDiagonal();
+    _fillDiagonal(rng);
     _fillRemaining(0, 3);
 
     int holes = holesForDifficulty(difficulty);
     puzzle = List.from(solution);
-    _removeDigitsSymmetric(holes);
+    _removeDigitsSymmetric(holes, rng);
   }
 
-  void _fillDiagonal() {
+  void _fillDiagonal(Random rng) {
     for (int i = 0; i < 9; i = i + 3) {
-      _fillBox(i, i);
+      _fillBox(i, i, rng);
     }
   }
 
-  void _fillBox(int row, int col) {
+  void _fillBox(int row, int col, Random rng) {
     int num;
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         do {
-          num = Random().nextInt(9) + 1;
+          num = rng.nextInt(9) + 1;
         } while (!_isSafeInBox(solution, row, col, num));
         solution[(row + i) * 9 + (col + j)] = num;
       }
@@ -126,9 +206,9 @@ class SudokuEngine {
     return false;
   }
 
-  void _removeDigitsSymmetric(int holesToMake) {
+  void _removeDigitsSymmetric(int holesToMake, Random rng) {
     List<int> halfCells = List.generate(41, (i) => i);
-    halfCells.shuffle();
+    halfCells.shuffle(rng);
 
     int holes = 0;
 
@@ -185,7 +265,7 @@ class SudokuEngine {
       for (int i = 0; i < 81; i++) {
         if (puzzle[i] != 0) remaining.add(i);
       }
-      remaining.shuffle();
+      remaining.shuffle(rng);
 
       for (int cellId in remaining) {
         if (holes >= holesToMake) break;

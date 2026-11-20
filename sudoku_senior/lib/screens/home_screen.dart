@@ -4,6 +4,8 @@ import '../managers/game_storage.dart';
 import '../managers/ad_manager.dart';
 import '../managers/audio_manager.dart';
 import '../widgets/zen_background.dart';
+import '../widgets/stats_dialog.dart';
+import '../widgets/daily_calendar.dart';
 import 'game_screen.dart';
 import 'settings_screen.dart';
 import 'collection_screen.dart';
@@ -11,19 +13,18 @@ import 'collection_screen.dart';
 class HomeScreen extends StatefulWidget {
   final VoidCallback onThemeChanged;
 
-  const HomeScreen({
-    super.key,
-    required this.onThemeChanged,
-  });
+  const HomeScreen({super.key, required this.onThemeChanged});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _hasSavedGame = false;
   bool _diabolicoUnlocked = false;
   int _maestroWins = 0;
+  bool _isDailyCompletedToday = false;
+  int _dailyStreak = 0;
 
   BannerAd? _bannerAd;
   bool _isBannerLoaded = false;
@@ -31,6 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _checkState();
     _loadBanner();
   }
@@ -53,30 +55,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _bannerAd?.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkState();
   }
 
   void _checkState() async {
     final state = await GameStorage.loadGameState();
     final unlocked = await GameStorage.isDiabolicoUnlocked();
     final maestroWins = await GameStorage.getMaestroWins();
+    final dailyCompleted = await GameStorage.isDailyCompletedToday();
+    final dailyStreak = await GameStorage.getDailyStreak();
 
     if (mounted) {
       setState(() {
         _hasSavedGame = state != null;
         _diabolicoUnlocked = unlocked;
         _maestroWins = maestroWins;
+        _isDailyCompletedToday = dailyCompleted;
+        _dailyStreak = dailyStreak;
       });
     }
   }
 
-  void _startGame(BuildContext context, String mode, int difficulty, {int gridSize = 9}) {
+  void _startGame(
+    BuildContext context,
+    String mode,
+    int difficulty, {
+    int gridSize = 9,
+  }) {
     AudioManager.playClick();
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => GameScreen(mode: mode, difficulty: difficulty, gridSize: gridSize),
+        builder: (context) =>
+            GameScreen(mode: mode, difficulty: difficulty, gridSize: gridSize),
       ),
     ).then((_) => _checkState());
   }
@@ -102,7 +120,10 @@ class _HomeScreenState extends State<HomeScreen> {
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: colors.surface,
-            border: Border.all(color: colors.primary.withAlpha(128), width: 1.2),
+            border: Border.all(
+              color: colors.primary.withAlpha(128),
+              width: 1.2,
+            ),
           ),
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
@@ -125,10 +146,43 @@ class _HomeScreenState extends State<HomeScreen> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                _difficultyTile(ctx, context, "🌸  Principiante", "41 pistas • Ideal para aprender", mode, 1, colors),
-                _difficultyTile(ctx, context, "🍃  Normal", "32 pistas • Requiere atención", mode, 2, colors),
-                _difficultyTile(ctx, context, "⛩  Maestro", "24 pistas • Dominio del tablero", mode, 3, colors),
-                _difficultyTile(ctx, context, "🌿  Aprendiz", "Modo 4×4 • Tablero más sencillo", 'aprendiz', 0, colors, gridSize: 4),
+                _difficultyTile(
+                  ctx,
+                  context,
+                  "🌸  Principiante",
+                  "41 pistas • Ideal para aprender",
+                  mode,
+                  1,
+                  colors,
+                ),
+                _difficultyTile(
+                  ctx,
+                  context,
+                  "🍃  Normal",
+                  "32 pistas • Requiere atención",
+                  mode,
+                  2,
+                  colors,
+                ),
+                _difficultyTile(
+                  ctx,
+                  context,
+                  "⛩  Maestro",
+                  "24 pistas • Dominio del tablero",
+                  mode,
+                  3,
+                  colors,
+                ),
+                _difficultyTile(
+                  ctx,
+                  context,
+                  "🌿  Aprendiz",
+                  "Modo 4×4 • Tablero más sencillo",
+                  'aprendiz',
+                  0,
+                  colors,
+                  gridSize: 4,
+                ),
                 Divider(color: colors.primary.withAlpha(60), height: 24),
                 _diabolicoTile(ctx, context, mode, colors),
                 const SizedBox(height: 16),
@@ -136,7 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.zero,
+                      ),
                       side: BorderSide(color: colors.primary, width: 1.5),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -173,7 +229,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListTile(
       title: Text(
         title,
-        style: TextStyle(color: colors.primary, fontWeight: FontWeight.bold, fontFamily: 'Serif'),
+        style: TextStyle(
+          color: colors.primary,
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Serif',
+        ),
       ),
       subtitle: Text(
         subtitle,
@@ -196,11 +256,18 @@ class _HomeScreenState extends State<HomeScreen> {
       return ListTile(
         title: Text(
           "💀  Diabólico",
-          style: TextStyle(color: colors.secondary, fontWeight: FontWeight.bold, fontFamily: 'Serif'),
+          style: TextStyle(
+            color: colors.secondary,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Serif',
+          ),
         ),
         subtitle: Text(
           "17 pistas • Para verdaderos maestros",
-          style: TextStyle(color: colors.secondary.withAlpha(160), fontSize: 12),
+          style: TextStyle(
+            color: colors.secondary.withAlpha(160),
+            fontSize: 12,
+          ),
         ),
         onTap: () {
           Navigator.pop(ctx);
@@ -215,7 +282,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         title: Text(
           "💀  Diabólico",
-          style: TextStyle(color: colors.primary.withAlpha(100), fontFamily: 'Serif'),
+          style: TextStyle(
+            color: colors.primary.withAlpha(100),
+            fontFamily: 'Serif',
+          ),
         ),
         subtitle: Text(
           "Gana $_maestroWins/10 partidas Reto Maestro para desbloquear",
@@ -224,7 +294,9 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () {
           ScaffoldMessenger.of(screenCtx).showSnackBar(
             SnackBar(
-              content: Text("Gana ${10 - _maestroWins} partidas más en Reto Maestro para desbloquear."),
+              content: Text(
+                "Gana ${10 - _maestroWins} partidas más en Reto Maestro para desbloquear.",
+              ),
               duration: const Duration(seconds: 2),
             ),
           );
@@ -247,10 +319,23 @@ class _HomeScreenState extends State<HomeScreen> {
           elevation: 0,
           actions: [
             IconButton(
+              icon: Icon(Icons.bar_chart_rounded, color: colors.primary),
+              tooltip: "Estadísticas",
+              onPressed: () {
+                AudioManager.playClick();
+                showStatsDialog(context);
+              },
+            ),
+            IconButton(
               icon: Icon(Icons.settings, color: colors.primary),
               tooltip: "Ajustes",
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
               },
             ),
             IconButton(
@@ -288,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 color: colors.secondary.withAlpha(30),
                                 blurRadius: 16,
                                 spreadRadius: 2,
-                              )
+                              ),
                             ],
                           ),
                         ),
@@ -332,31 +417,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // ── SEPARADOR CUADRICULADO ─────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 12,
+                ),
                 child: _gridDivider(colors),
               ),
 
               // ── OPCIONES DE JUEGO ──────────────────────────────────
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (_hasSavedGame) ...[
-                        _buildContinueCard(context, colors),
-                        const SizedBox(height: 8),
-                      ],
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_hasSavedGame) ...[
+                              _buildContinueCard(context, colors),
+                              const SizedBox(height: 8),
+                            ],
 
-                      // Opciones de juego
-                      _buildModeSection(context, colors),
+                            // Reto del Día
+                            _buildDailyChallengeCard(context, colors),
+                            TextButton.icon(
+                              onPressed: () => showDialog<void>(
+                                context: context,
+                                builder: (_) => const DailyCalendar(),
+                              ),
+                              icon: const Icon(Icons.calendar_month_outlined),
+                              label: const Text('Calendario de sellos'),
+                            ),
+                            const SizedBox(height: 8),
 
-                      const SizedBox(height: 8),
+                            // Opciones de juego
+                            _buildModeSection(context, colors),
 
-                      // Biblioteca de sabiduría
-                      _buildLibraryCard(context, colors),
-                    ],
-                  ),
+                            const SizedBox(height: 8),
+
+                            // Biblioteca de sabiduría
+                            _buildLibraryCard(context, colors),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -383,24 +492,23 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Separador con patrón de cuadrícula (evoca papel milimetrado)
   Widget _gridDivider(ColorScheme colors) {
     return Row(
-      children: List.generate(12, (i) => Expanded(
-        child: Container(
-          height: 1,
-          color: i.isEven
-              ? colors.primary.withAlpha(40)
-              : colors.primary.withAlpha(15),
+      children: List.generate(
+        12,
+        (i) => Expanded(
+          child: Container(
+            height: 1,
+            color: i.isEven
+                ? colors.primary.withAlpha(40)
+                : colors.primary.withAlpha(15),
+          ),
         ),
-      )),
+      ),
     );
   }
 
   /// Los dos modos en fila tipo cuadrícula
   Widget _buildModeSection(BuildContext context, ColorScheme colors) {
-    return Column(
-      children: [
-        _buildModeRow(context, colors),
-      ],
-    );
+    return Column(children: [_buildModeRow(context, colors)]);
   }
 
   Widget _buildModeRow(BuildContext context, ColorScheme colors) {
@@ -436,6 +544,193 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  static const List<String> _monthShortNames = [
+    'ene',
+    'feb',
+    'mar',
+    'abr',
+    'may',
+    'jun',
+    'jul',
+    'ago',
+    'sep',
+    'oct',
+    'nov',
+    'dic',
+  ];
+
+  String _formatTodayShort() {
+    final now = DateTime.now();
+    return '${now.day} ${_monthShortNames[now.month - 1]}';
+  }
+
+  void _onDailyChallengeTap(BuildContext context) async {
+    final saved = await GameStorage.loadGameState();
+    if (!context.mounted) return;
+    if (saved?.mode == 'daily' &&
+        saved?.dailyDate == GameStorage.formatDateKey(DateTime.now())) {
+      _continueGame(context);
+      return;
+    }
+    if (!_isDailyCompletedToday) {
+      _startGame(context, 'daily', 2);
+      return;
+    }
+
+    AudioManager.playClick();
+    final colors = Theme.of(context).colorScheme;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          "Reto del Día completado",
+          style: TextStyle(color: colors.primary, fontFamily: 'Serif'),
+        ),
+        content: Text(
+          "Ya sellaste el reto de hoy (racha actual: $_dailyStreak ${_dailyStreak == 1 ? 'día' : 'días'}). ¿Deseas jugarlo de nuevo como práctica?",
+          style: TextStyle(color: colors.primary.withAlpha(185)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cerrar"),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _startGame(context, 'daily', 2);
+            },
+            child: const Text("Jugar de nuevo"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDailyChallengeCard(BuildContext context, ColorScheme colors) {
+    final completed = _isDailyCompletedToday;
+    final accent = completed ? colors.primary : colors.secondary;
+
+    return InkWell(
+      onTap: () => _onDailyChallengeTap(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: completed
+              ? colors.primary.withAlpha(10)
+              : colors.secondary.withAlpha(16),
+          border: Border.all(
+            color: completed
+                ? colors.primary.withAlpha(70)
+                : colors.secondary.withAlpha(120),
+            width: 1.4,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accent.withAlpha(18),
+                border: Border.all(color: accent.withAlpha(80)),
+              ),
+              child: Icon(
+                completed ? Icons.verified_outlined : Icons.wb_sunny_outlined,
+                size: 22,
+                color: accent,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          "RETO DEL DÍA",
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w900,
+                            color: colors.primary,
+                            letterSpacing: 1.1,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 1,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accent.withAlpha(24),
+                          border: Border.all(
+                            color: accent.withAlpha(90),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          completed ? "COMPLETADO" : "PENDIENTE",
+                          style: TextStyle(
+                            fontSize: 8.5,
+                            fontWeight: FontWeight.w800,
+                            color: accent,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    completed
+                        ? "${_formatTodayShort()} · Sello diario grabado"
+                        : "${_formatTodayShort()} · Tablero único del día",
+                    style: TextStyle(
+                      fontSize: 10.5,
+                      color: colors.primary.withAlpha(160),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Insignia de racha diaria
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: colors.secondary.withAlpha(16),
+                border: Border.all(color: colors.secondary.withAlpha(90)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.local_fire_department_rounded,
+                    size: 14,
+                    color: colors.secondary,
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    "$_dailyStreak",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      color: colors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildContinueCard(BuildContext context, ColorScheme colors) {
     return InkWell(
       onTap: () => _continueGame(context),
@@ -443,7 +738,10 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: colors.secondary.withAlpha(18),
-          border: Border.all(color: colors.secondary.withAlpha(100), width: 1.5),
+          border: Border.all(
+            color: colors.secondary.withAlpha(100),
+            width: 1.5,
+          ),
         ),
         child: Row(
           children: [
@@ -453,7 +751,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: colors.secondary.withAlpha(25),
                 border: Border.all(color: colors.secondary.withAlpha(80)),
               ),
-              child: Icon(Icons.play_arrow_rounded, size: 24, color: colors.secondary),
+              child: Icon(
+                Icons.play_arrow_rounded,
+                size: 24,
+                color: colors.secondary,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -471,12 +773,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Text(
                     "Reanuda tu última meditación",
-                    style: TextStyle(fontSize: 11, color: colors.primary.withAlpha(160)),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: colors.primary.withAlpha(160),
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: colors.secondary, size: 22),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colors.secondary,
+              size: 22,
+            ),
           ],
         ),
       ),
@@ -559,7 +868,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: colors.primary.withAlpha(12),
                 border: Border.all(color: colors.primary.withAlpha(50)),
               ),
-              child: Icon(Icons.menu_book_outlined, size: 22, color: colors.primary),
+              child: Icon(
+                Icons.menu_book_outlined,
+                size: 22,
+                color: colors.primary,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -577,16 +890,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Text(
                     "Colecciona pergaminos y frases de iluminación",
-                    style: TextStyle(fontSize: 10, color: colors.primary.withAlpha(150)),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colors.primary.withAlpha(150),
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: colors.primary.withAlpha(120), size: 20),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: colors.primary.withAlpha(120),
+              size: 20,
+            ),
           ],
         ),
       ),
     );
   }
-
 }

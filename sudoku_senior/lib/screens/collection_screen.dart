@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/quotes_data.dart';
 import '../managers/game_storage.dart';
+import '../widgets/stats_dialog.dart';
 
 class CollectionScreen extends StatefulWidget {
   const CollectionScreen({super.key});
@@ -42,6 +43,13 @@ class _CollectionScreenState extends State<CollectionScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: colors.primary),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.bar_chart_rounded, color: colors.primary),
+            tooltip: "Estadísticas",
+            onPressed: () => showStatsDialog(context),
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

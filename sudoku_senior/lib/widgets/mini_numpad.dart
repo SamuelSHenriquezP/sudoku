@@ -10,6 +10,7 @@ class MiniNumPad extends StatelessWidget {
   final Function() onHelp;
   final Function() onUndo;
   final Set<int> completedNumbers;
+  final Map<int, int> numberCounts;
 
   const MiniNumPad({
     super.key,
@@ -20,6 +21,7 @@ class MiniNumPad extends StatelessWidget {
     required this.onHelp,
     required this.onUndo,
     this.completedNumbers = const {},
+    this.numberCounts = const {},
   });
 
   @override
@@ -144,10 +146,15 @@ class MiniNumPad extends StatelessWidget {
 
   Widget _numBtn(BuildContext context, int num, double size) {
     final colors = Theme.of(context).colorScheme;
-    final isCompleted = completedNumbers.contains(num);
+    final count = numberCounts[num] ?? 0;
+    final isCompleted = completedNumbers.contains(num) || count >= 4;
+    final showRemaining = !isCompleted && numberCounts.isNotEmpty;
+    final remaining = (4 - count).clamp(0, 4);
+
     return Expanded(
       child: GestureDetector(
-        onTap: () => onNumberInput(num),
+        behavior: HitTestBehavior.opaque,
+        onTap: isCompleted ? null : () => onNumberInput(num),
         child: Container(
           height: size * 0.9,
           margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -171,7 +178,7 @@ class MiniNumPad extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 32,
                     color: isCompleted
-                        ? colors.primary.withAlpha(60)
+                        ? colors.primary.withAlpha(55)
                         : colors.primary,
                     fontWeight: FontWeight.bold,
                   ),
@@ -185,6 +192,20 @@ class MiniNumPad extends StatelessWidget {
                     Icons.check,
                     size: 14,
                     color: colors.secondary.withAlpha(160),
+                  ),
+                )
+              else if (showRemaining)
+                Positioned(
+                  bottom: 4,
+                  right: 6,
+                  child: Text(
+                    '$remaining',
+                    style: TextStyle(
+                      fontSize: 10,
+                      height: 1,
+                      fontWeight: FontWeight.w600,
+                      color: colors.primary.withAlpha(115),
+                    ),
                   ),
                 ),
             ],
